@@ -57,9 +57,9 @@ Created by [RocketGod](https://github.com/RocketGod-git)
 
 For dictionary attacks, you can utilize various wordlists. The bot is configured with the following options:
 
-- **RockYou 2021** - [Download here](#)
-- **RockYou Strong** - [Download here](#)
-- **Crackstation** - [Download here](#)
+- **RockYou 2021** - [Ask me for this if you can't find it. It's too big to include](#)
+- **RockYou Strong** - [Ask me for this if you can't find it. It's too big to include](#)
+- **Crackstation** - [Ask me for this if you can't find it. It's too big to include](#)
 
 Make sure to download and place these wordlists in main hashcat folder.
 
