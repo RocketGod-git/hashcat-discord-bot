@@ -85,8 +85,8 @@ async def execute_hashcat(interaction, args, output_file, hash_type_mapping, has
             return
 
         if process.returncode != 0:
-            logging.error(f"Hashcat detailed error: {stderr.decode()}")
-            await handle_errors(interaction, f"Hashcat encountered an error. Please contact a Mod for help.")
+            detailed_error = stderr.decode()
+            await handle_errors(interaction, "Hashcat encountered an error.", detailed_error=detailed_error)
             return
 
         if os.path.exists(output_file):  
@@ -104,10 +104,11 @@ async def execute_hashcat(interaction, args, output_file, hash_type_mapping, has
     except asyncio.TimeoutError:
         logging.error("Hashcat process timeout.")
         process.terminate()
-        await interaction.channel.send("Hashcat took too long to respond. The process was terminated.")
+        await handle_errors(interaction, "Hashcat process timeout.", detailed_error="The process took too long and was terminated.")
     except Exception as e:
         logging.error(f"Unexpected error in execute_hashcat: {e}")
-        await interaction.channel.send("An unexpected error occurred during hash cracking. Please contact RocketGod for help.")
+        await handle_errors(interaction, "An unexpected error occurred during hash cracking.", detailed_error=str(e))
+
     finally:
         os.chdir(original_cwd)
 
@@ -158,19 +159,18 @@ class aclient(discord.Client):
             except Exception as e:
                 logging.error(f"Failed to send a message chunk to the channel. Error: {e}")
 
-async def handle_errors(interaction, error, error_type="Error", cracked_password=None):
-    if cracked_password:
-        error_message = f"{error_type}: {error}\nCracked Password: {cracked_password}"
-    else:
-        error_message = f"{error_type}: {error}"
+async def handle_errors(interaction, error, error_type="Error", detailed_error=None):
+    error_message = f"{error_type}: {error}"
+    if detailed_error:
+        error_message += f"\nDetails: {detailed_error}"
     logging.error(f"Error for user {interaction.user}: {error_message}")  
-    
-    # Send a generic error message to Discord
+
+    # Send the detailed error message to Discord
     try:
         if interaction.response.is_done():
-            await interaction.channel.send("An error occurred while processing your request. Please try again later.")
+            await interaction.channel.send(error_message)
         else:
-            await interaction.response.send_message("An error occurred while processing your request. Please try again later.", ephemeral=True)
+            await interaction.response.send_message(error_message, ephemeral=False)
     except discord.HTTPException as http_err:
         logging.warning(f"HTTP error while responding to {interaction.user}: {http_err}")
     except Exception as unexpected_err:
@@ -189,7 +189,7 @@ def run_discord_bot(token):
     @client.tree.command(name="hashcat", description="Crack hashes using Hashcat")
     async def hashcat(interaction: discord.Interaction):
         if "options" not in interaction.data:
-            await interaction.channel.send("You must provide required options.", ephemeral=True)
+            await interaction.channel.send("You must provide required options.")
             return
         
         # Extract options from the interaction data
@@ -204,15 +204,15 @@ def run_discord_bot(token):
 
         # Validate the hash format
         if not re.match("^[a-fA-F0-9]+$", hash_value):
-            await interaction.channel.send("Invalid hash format.", ephemeral=True)
+            await interaction.channel.send("Invalid hash format.")
             return
 
         # Check for unnecessary options based on attack mode
         if attack_mode == "dictionary" and password_length:
-            await interaction.channel.send("You've provided a password length, but it's not needed for a dictionary attack.", ephemeral=True)
+            await interaction.channel.send("You've provided a password length, but it's not needed for a dictionary attack.")
             return
         elif attack_mode == "bruteforce" and wordlist:
-            await interaction.channel.send("You've provided a wordlist, but it's not needed for a bruteforce attack.", ephemeral=True)
+            await interaction.channel.send("You've provided a wordlist, but it's not needed for a bruteforce attack.")
             return
 
         # Assemble the arguments for hashcat
